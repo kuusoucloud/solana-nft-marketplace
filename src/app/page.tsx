@@ -46,28 +46,35 @@ export default function HomePage() {
       setLoading(true);
       console.log('🔥 Fetching trending collections from Magic Eden...');
       
-      // Use Magic Eden API for live data
+      // Use Magic Eden API for live data - NO FALLBACK
       const collectionsData = await magicEdenAPI.getTrendingCollections(20);
       console.log('✅ Collections fetched from Magic Eden:', collectionsData.length);
       
-      // Transform Magic Eden data to our format
-      const transformedCollections = collectionsData.map(collection => ({
-        id: collection.symbol,
-        name: collection.name,
-        image: collection.image,
-        description: collection.description,
-        floorPrice: collection.floorPrice || 0,
-        volume24h: collection.volume24hr || 0,
-        totalSupply: 10000, // Magic Eden doesn't provide this, using default
-        creator: 'Unknown', // Magic Eden doesn't provide this in collections endpoint
-        priceChange24h: Math.random() * 20 - 10, // Mock data for price change
-        sales24h: Math.floor(collection.volume24hr / (collection.avgPrice24hr || 1)),
-        listedCount: collection.listedCount || 0,
-      }));
-      
-      setCollections(transformedCollections);
+      if (collectionsData.length > 0) {
+        // Transform Magic Eden data to our format
+        const transformedCollections = collectionsData.map(collection => ({
+          id: collection.symbol,
+          name: collection.name,
+          image: collection.image,
+          description: collection.description,
+          floorPrice: collection.floorPrice || 0,
+          volume24h: collection.volume24hr || 0,
+          totalSupply: 10000, // Magic Eden doesn't provide this, using default
+          creator: 'Unknown', // Magic Eden doesn't provide this in collections endpoint
+          priceChange24h: Math.random() * 20 - 10, // Mock data for price change
+          sales24h: Math.floor(collection.volume24hr / (collection.avgPrice24hr || 1)),
+          listedCount: collection.listedCount || 0,
+        }));
+        
+        setCollections(transformedCollections);
+        console.log('✅ Successfully loaded Magic Eden collections');
+      } else {
+        console.log('⚠️ No collections returned from Magic Eden API');
+        setCollections([]);
+      }
     } catch (error) {
-      console.error("❌ Error fetching NFT data:", error);
+      console.error("❌ Error fetching NFT data from Magic Eden:", error);
+      setCollections([]);
     } finally {
       setLoading(false);
     }

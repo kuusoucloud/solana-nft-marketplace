@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Magic Eden API for NFT marketplace data
-const MAGIC_EDEN_BASE_URL = '/api'; // Use our proxy API routes
+const MAGIC_EDEN_BASE_URL = 'https://api-mainnet.magiceden.dev/v2';
 
 export interface MagicEdenCollection {
   symbol: string;
@@ -88,23 +88,20 @@ export class MagicEdenAPI {
     });
   }
 
-  // Get popular collections
+  // Get popular collections - FIXED TO USE REAL MAGIC EDEN API
   async getPopularCollections(limit: number = 20): Promise<MagicEdenCollection[]> {
     try {
-      console.log('Making request to proxy API...');
-      const cacheBuster = Date.now();
+      console.log('🔥 Fetching collections from Magic Eden API...');
       const response = await this.axiosInstance.get('/collections', {
         params: {
           offset: 0,
           limit,
-          _t: cacheBuster, // Cache buster
         },
       });
-      console.log('Proxy API response status:', response.status);
-      console.log('Proxy API response data length:', response.data?.length || 0);
+      console.log(`✅ Magic Eden API returned ${response.data?.length || 0} collections`);
       return response.data || [];
     } catch (error: any) {
-      console.error('Error fetching popular collections:', error.message);
+      console.error('❌ Error fetching popular collections from Magic Eden:', error.message);
       console.error('Error details:', error.response?.data || error);
       return [];
     }
@@ -115,45 +112,51 @@ export class MagicEdenAPI {
     return this.getPopularCollections(limit);
   }
 
-  // Get collection statistics
+  // Get collection statistics - FIXED TO USE REAL MAGIC EDEN API
   async getCollectionStats(symbol: string): Promise<MagicEdenCollectionStats | null> {
     try {
+      console.log(`🔍 Fetching stats for collection: ${symbol}`);
       const response = await this.axiosInstance.get(`/collections/${symbol}/stats`);
+      console.log(`✅ Got stats for ${symbol}:`, response.data);
       return response.data;
     } catch (error: any) {
-      console.error(`Error fetching stats for collection ${symbol}:`, error.message);
+      console.error(`❌ Error fetching stats for collection ${symbol}:`, error.message);
       return null;
     }
   }
 
-  // Get NFTs from a collection
+  // Get NFTs from a collection - FIXED TO USE REAL MAGIC EDEN API
   async getCollectionNFTs(symbol: string, offset: number = 0, limit: number = 20): Promise<MagicEdenNFT[]> {
     try {
+      console.log(`🔍 Fetching NFTs for collection: ${symbol}`);
       const response = await this.axiosInstance.get(`/collections/${symbol}/listings`, {
         params: {
           offset,
           limit,
         },
       });
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching NFTs for collection ${symbol}:`, error);
+      console.log(`✅ Got ${response.data?.length || 0} NFTs for ${symbol}`);
+      return response.data || [];
+    } catch (error: any) {
+      console.error(`❌ Error fetching NFTs for collection ${symbol}:`, error.message);
       return [];
     }
   }
 
-  // Get specific NFT details
+  // Get specific NFT details - FIXED TO USE REAL MAGIC EDEN API
   async getNFTDetails(mintAddress: string): Promise<MagicEdenNFT | null> {
     try {
+      console.log(`🔍 Fetching NFT details for: ${mintAddress}`);
       const response = await this.axiosInstance.get(`/tokens/${mintAddress}`);
+      console.log(`✅ Got NFT details for ${mintAddress}`);
       return response.data;
-    } catch (error) {
-      console.error(`Error fetching NFT details for ${mintAddress}:`, error);
+    } catch (error: any) {
+      console.error(`❌ Error fetching NFT details for ${mintAddress}:`, error.message);
       return null;
     }
   }
 
-  // Get NFT activities (sales, listings, etc.)
+  // Get NFT activities (sales, listings, etc.) - FIXED TO USE REAL MAGIC EDEN API
   async getNFTActivities(mintAddress: string, limit: number = 10): Promise<MagicEdenActivity[]> {
     try {
       const response = await this.axiosInstance.get(`/tokens/${mintAddress}/activities`, {
@@ -162,14 +165,14 @@ export class MagicEdenAPI {
           limit,
         },
       });
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching NFT activities for ${mintAddress}:`, error);
+      return response.data || [];
+    } catch (error: any) {
+      console.error(`❌ Error fetching NFT activities for ${mintAddress}:`, error.message);
       return [];
     }
   }
 
-  // Get collection activities
+  // Get collection activities - FIXED TO USE REAL MAGIC EDEN API
   async getCollectionActivities(symbol: string, limit: number = 100): Promise<MagicEdenActivity[]> {
     try {
       const response = await this.axiosInstance.get(`/collections/${symbol}/activities`, {
@@ -178,9 +181,9 @@ export class MagicEdenAPI {
           limit,
         },
       });
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching collection activities for ${symbol}:`, error);
+      return response.data || [];
+    } catch (error: any) {
+      console.error(`❌ Error fetching collection activities for ${symbol}:`, error.message);
       return [];
     }
   }
