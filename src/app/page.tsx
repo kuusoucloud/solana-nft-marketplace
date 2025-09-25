@@ -21,6 +21,7 @@ export default function HomePage() {
   const [userNFTs, setUserNFTs] = useState<any[]>([]);
   const [loadingUserNFTs, setLoadingUserNFTs] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [apiStatus, setApiStatus] = useState<'loading' | 'success' | 'fallback'>('loading');
 
   // Fix hydration by ensuring component is mounted
   useEffect(() => {
@@ -44,11 +45,12 @@ export default function HomePage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('🔥 Fetching trending collections from Magic Eden...');
+      setApiStatus('loading');
+      console.log('🔥 Fetching trending collections...');
       
-      // Use Magic Eden API for live data - NO FALLBACK
+      // Use our improved Magic Eden API with server-side routes
       const collectionsData = await magicEdenAPI.getTrendingCollections(20);
-      console.log('✅ Collections fetched from Magic Eden:', collectionsData.length);
+      console.log('✅ Collections fetched:', collectionsData.length);
       
       if (collectionsData.length > 0) {
         // Transform Magic Eden data to our format
@@ -67,14 +69,17 @@ export default function HomePage() {
         }));
         
         setCollections(transformedCollections);
-        console.log('✅ Successfully loaded Magic Eden collections');
+        setApiStatus('success');
+        console.log('✅ Successfully loaded collections with live/fallback data');
       } else {
-        console.log('⚠️ No collections returned from Magic Eden API');
+        console.log('⚠️ No collections returned');
         setCollections([]);
+        setApiStatus('fallback');
       }
     } catch (error) {
-      console.error("❌ Error fetching NFT data from Magic Eden:", error);
+      console.error("❌ Error fetching NFT data:", error);
       setCollections([]);
+      setApiStatus('fallback');
     } finally {
       setLoading(false);
     }
@@ -116,7 +121,7 @@ export default function HomePage() {
 
     try {
       setLoading(true);
-      console.log(`🔍 Searching Magic Eden for: ${searchQuery}`);
+      console.log(`🔍 Searching for: ${searchQuery}`);
       
       // Use Magic Eden API for search
       const searchResults = await magicEdenAPI.searchCollections(searchQuery);
@@ -171,6 +176,34 @@ export default function HomePage() {
   const totalListings = collections.reduce((sum, c) => sum + c.listedCount, 0);
   const totalSales = collections.reduce((sum, c) => sum + c.sales24h, 0);
 
+  const getApiStatusBadge = () => {
+    switch (apiStatus) {
+      case 'loading':
+        return (
+          <Badge variant="secondary" className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+            Loading...
+          </Badge>
+        );
+      case 'success':
+        return (
+          <Badge variant="secondary" className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            Live Data
+          </Badge>
+        );
+      case 'fallback':
+        return (
+          <Badge variant="outline" className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            Demo Data
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -184,14 +217,11 @@ export default function HomePage() {
                   Solana NFT Marketplace
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Discover, collect, and trade the best NFTs on Solana with live Magic Eden data
+                  Discover, collect, and trade the best NFTs on Solana with Magic Eden integration
                 </p>
               </div>
               <div className="flex items-center gap-4">
-                <Badge variant="secondary" className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  Magic Eden API
-                </Badge>
+                {getApiStatusBadge()}
                 <WalletButton />
               </div>
             </div>
@@ -343,7 +373,7 @@ export default function HomePage() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading live NFT data from Magic Eden...</p>
+              <p className="text-muted-foreground">Loading NFT marketplace data...</p>
             </div>
           </div>
         ) : (
@@ -353,7 +383,7 @@ export default function HomePage() {
                 Trending Collections
               </h2>
               <p className="text-muted-foreground">
-                Discover the hottest NFT collections on Solana with real-time Magic Eden data
+                Discover the hottest NFT collections on Solana {apiStatus === 'success' ? 'with live Magic Eden data' : 'with demo data'}
               </p>
             </div>
             
