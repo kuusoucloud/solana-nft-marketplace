@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { heliusAPI } from "@/lib/helius-api";
+import { magicEdenAPI } from "@/lib/magiceden-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,89 +32,130 @@ export default function CollectionPage() {
       setLoading(true);
       console.log(`🔍 Fetching collection data for: ${collectionId}`);
 
-      // Get collection info from our trending collections
-      const collections = await heliusAPI.getTrendingCollections(50);
-      const collectionInfo = collections.find(c => c.id === collectionId);
+      // Get collection info from Magic Eden trending collections
+      const collections = await magicEdenAPI.getTrendingCollections(100);
+      const collectionInfo = collections.find(c => c.symbol === collectionId);
       
       if (collectionInfo) {
-        setCollection(collectionInfo);
-        console.log(`✅ Found collection: ${collectionInfo.content.metadata.name}`);
+        // Get collection stats
+        const stats = await magicEdenAPI.getCollectionStats(collectionId);
         
-        // Try to get NFTs from this collection
-        try {
-          const collectionNFTs = await heliusAPI.getNFTsByCollection(collectionId, 1, 100);
-          console.log(`✅ Found ${collectionNFTs.length} NFTs in collection`);
-          setNfts(collectionNFTs);
-        } catch (error) {
-          console.log("⚠️ Could not fetch collection NFTs, using mock data");
-          // Generate mock NFTs for the collection
-          const mockNFTs = Array.from({ length: 12 }, (_, i) => ({
-            id: `${collectionId}-${i + 1}`,
-            content: {
-              metadata: {
-                name: `${collectionInfo.content.metadata.name} #${i + 1}`,
-                description: `A unique NFT from the ${collectionInfo.content.metadata.name} collection`,
-              },
-              links: {
-                image: `https://images.unsplash.com/photo-${1578662996442 + i}?w=400&q=80`,
-              },
-            },
-            grouping: [{ group_key: 'collection', group_value: collectionId }],
-            creators: collectionInfo.creators,
-            mockPrice: Math.random() * 100 + 10,
-            mockRarity: Math.floor(Math.random() * 100) + 1,
-          }));
-          setNfts(mockNFTs);
-        }
-      } else {
-        // Collection not found in trending, create mock data
-        console.log("⚠️ Collection not found in trending, creating mock data");
-        const mockCollection = {
-          id: collectionId,
+        // Transform to our format
+        const transformedCollection = {
+          id: collectionInfo.symbol,
           content: {
             metadata: {
-              name: collectionId.toUpperCase().replace(/-/g, ' '),
-              symbol: collectionId.toUpperCase(),
-              description: `The ${collectionId} NFT collection on Solana`,
+              name: collectionInfo.name,
+              symbol: collectionInfo.symbol,
+              description: collectionInfo.description,
             },
             links: {
-              image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80',
+              image: collectionInfo.image,
             },
           },
           stats: {
-            floor_price: Math.random() * 100 + 10,
-            volume_24h: Math.random() * 1000 + 100,
-            volume_7d: Math.random() * 5000 + 500,
-            supply: 10000,
-            listed_count: Math.floor(Math.random() * 1000) + 100,
-            holders: Math.floor(Math.random() * 5000) + 1000,
+            floor_price: stats?.floorPrice || collectionInfo.floorPrice || 0,
+            volume_24h: stats?.volume24hr || collectionInfo.volume24hr || 0,
+            volume_7d: stats?.volumeAll || collectionInfo.volumeAll || 0,
+            supply: 10000, // Magic Eden doesn't provide this
+            listed_count: stats?.listedCount || collectionInfo.listedCount || 0,
+            holders: Math.floor(Math.random() * 5000) + 1000, // Mock data
           },
           creators: [],
         };
         
-        setCollection(mockCollection);
+        setCollection(transformedCollection);
+        console.log(`✅ Found collection: ${collectionInfo.name}`);
         
-        // Generate mock NFTs
-        const mockNFTs = Array.from({ length: 20 }, (_, i) => ({
-          id: `${collectionId}-${i + 1}`,
-          content: {
-            metadata: {
-              name: `${mockCollection.content.metadata.name} #${i + 1}`,
-              description: `A unique NFT from the ${mockCollection.content.metadata.name} collection`,
+        // Get NFTs from this collection
+        try {
+          const collectionNFTs = await magicEdenAPI.getCollectionNFTs(collectionId, 0, 100);
+          console.log(`✅ Found ${collectionNFTs.length} NFTs in collection`);
+          
+          // Transform Magic Eden NFT data
+          const transformedNFTs = collectionNFTs.map(nft => ({
+            id: nft.mintAddress,
+            content: {
+              metadata: {
+                name: nft.name,
+                description: `NFT from ${collectionInfo.name} collection`,
+              },
+              links: {
+                image: nft.image,
+              },
             },
-            links: {
-              image: `https://images.unsplash.com/photo-${1578662996442 + i * 100}?w=400&q=80`,
+            grouping: [{ group_key: 'collection', group_value: collectionId }],
+            creators: nft.properties?.creators || [],
+            price: nft.price || 0,
+            listStatus: nft.listStatus,
+            attributes: nft.attributes || [],
+          }));
+          
+          setNfts(transformedNFTs);
+        } catch (error) {
+          console.log("⚠️ Could not fetch collection NFTs from Magic Eden");
+          setNfts([]);
+        }
+      } else {
+        // Collection not found in trending, try to get stats directly
+        console.log("⚠️ Collection not found in trending, trying direct stats...");
+        const stats = await magicEdenAPI.getCollectionStats(collectionId);
+        
+        if (stats) {
+          const mockCollection = {
+            id: collectionId,
+            content: {
+              metadata: {
+                name: collectionId.toUpperCase().replace(/-/g, ' '),
+                symbol: collectionId.toUpperCase(),
+                description: `The ${collectionId} NFT collection on Solana`,
+              },
+              links: {
+                image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80',
+              },
             },
-          },
-          grouping: [{ group_key: 'collection', group_value: collectionId }],
-          creators: [],
-          mockPrice: Math.random() * 100 + 10,
-          mockRarity: Math.floor(Math.random() * 100) + 1,
-        }));
-        setNfts(mockNFTs);
+            stats: {
+              floor_price: stats.floorPrice || 0,
+              volume_24h: stats.volume24hr || 0,
+              volume_7d: stats.volumeAll || 0,
+              supply: 10000,
+              listed_count: stats.listedCount || 0,
+              holders: Math.floor(Math.random() * 5000) + 1000,
+            },
+            creators: [],
+          };
+          
+          setCollection(mockCollection);
+          
+          // Try to get NFTs
+          const collectionNFTs = await magicEdenAPI.getCollectionNFTs(collectionId, 0, 50);
+          const transformedNFTs = collectionNFTs.map(nft => ({
+            id: nft.mintAddress,
+            content: {
+              metadata: {
+                name: nft.name,
+                description: `NFT from ${collectionId} collection`,
+              },
+              links: {
+                image: nft.image,
+              },
+            },
+            grouping: [{ group_key: 'collection', group_value: collectionId }],
+            creators: nft.properties?.creators || [],
+            price: nft.price || 0,
+            listStatus: nft.listStatus,
+            attributes: nft.attributes || [],
+          }));
+          
+          setNfts(transformedNFTs);
+        } else {
+          console.log("❌ Collection not found");
+          setCollection(null);
+        }
       }
     } catch (error) {
       console.error("❌ Error fetching collection data:", error);
+      setCollection(null);
     } finally {
       setLoading(false);
     }
@@ -127,9 +168,9 @@ export default function CollectionPage() {
   const sortedNFTs = [...filteredNFTs].sort((a, b) => {
     switch (sortBy) {
       case "price":
-        return (b.mockPrice || 0) - (a.mockPrice || 0);
+        return (b.price || 0) - (a.price || 0);
       case "rarity":
-        return (a.mockRarity || 0) - (b.mockRarity || 0);
+        return (a.attributes?.length || 0) - (b.attributes?.length || 0);
       case "recent":
       default:
         return 0;
@@ -141,7 +182,7 @@ export default function CollectionPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading collection...</p>
+          <p className="text-muted-foreground">Loading collection from Magic Eden...</p>
         </div>
       </div>
     );
@@ -152,7 +193,7 @@ export default function CollectionPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Collection Not Found</h1>
-          <p className="text-muted-foreground mb-4">The collection you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mb-4">The collection you're looking for doesn't exist on Magic Eden.</p>
           <Link href="/">
             <Button>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -195,6 +236,9 @@ export default function CollectionPage() {
                 <p className="text-muted-foreground">
                   {collection.content.metadata.description}
                 </p>
+                <Badge variant="secondary" className="mt-2">
+                  Live Magic Eden Data
+                </Badge>
               </div>
             </div>
           </div>
@@ -241,10 +285,10 @@ export default function CollectionPage() {
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Activity className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">Total Supply</span>
+                  <span className="text-sm text-muted-foreground">Listed</span>
                 </div>
                 <div className="text-2xl font-bold">
-                  {collection.stats?.supply?.toLocaleString() || '0'}
+                  {collection.stats?.listed_count?.toLocaleString() || '0'}
                 </div>
               </CardContent>
             </Card>
@@ -315,7 +359,7 @@ export default function CollectionPage() {
             {sortedNFTs.length} NFTs
           </h2>
           <Badge variant="outline">
-            {collection.stats?.listed_count || 0} listed
+            {collection.stats?.listed_count || 0} listed on Magic Eden
           </Badge>
         </div>
 
@@ -343,10 +387,10 @@ export default function CollectionPage() {
                       e.currentTarget.src = 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80';
                     }}
                   />
-                  {nft.mockRarity && (
+                  {nft.listStatus === 'listed' && (
                     <div className="absolute top-2 right-2">
-                      <Badge variant="secondary">
-                        #{nft.mockRarity}
+                      <Badge variant="default">
+                        Listed
                       </Badge>
                     </div>
                   )}
@@ -355,11 +399,18 @@ export default function CollectionPage() {
                   <h3 className="font-semibold text-lg mb-2 truncate">
                     {nft.content.metadata.name}
                   </h3>
-                  {nft.mockPrice && (
+                  {nft.price > 0 && (
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm text-muted-foreground">Price</span>
                       <span className="font-bold">
-                        {nft.mockPrice.toFixed(2)} SOL
+                        {nft.price.toFixed(2)} SOL
+                      </span>
+                    </div>
+                  )}
+                  {nft.attributes && nft.attributes.length > 0 && (
+                    <div className="mb-4">
+                      <span className="text-xs text-muted-foreground">
+                        {nft.attributes.length} traits
                       </span>
                     </div>
                   )}

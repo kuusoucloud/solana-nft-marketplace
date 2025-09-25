@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useWallet } from '@solana/wallet-adapter-react';
 import { CollectionGrid } from "@/components/marketplace/CollectionGrid";
+import { magicEdenAPI } from "@/lib/magiceden-api";
 import { heliusAPI } from "@/lib/helius-api";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { Button } from "@/components/ui/button";
@@ -43,24 +44,25 @@ export default function HomePage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('🔥 Fetching trending collections...');
+      console.log('🔥 Fetching trending collections from Magic Eden...');
       
-      const collectionsData = await heliusAPI.getTrendingCollections(20);
-      console.log('✅ Collections fetched:', collectionsData.length);
+      // Use Magic Eden API for live data
+      const collectionsData = await magicEdenAPI.getTrendingCollections(20);
+      console.log('✅ Collections fetched from Magic Eden:', collectionsData.length);
       
-      // Transform Helius data to our format
+      // Transform Magic Eden data to our format
       const transformedCollections = collectionsData.map(collection => ({
-        id: collection.id,
-        name: collection.content.metadata.name,
-        image: collection.content.links.image,
-        description: collection.content.metadata.description,
-        floorPrice: collection.stats?.floor_price || 0,
-        volume24h: collection.stats?.volume_24h || 0,
-        totalSupply: collection.stats?.supply || 0,
-        creator: collection.creators[0]?.address || 'Unknown',
-        priceChange24h: Math.random() * 20 - 10, // Mock data
-        sales24h: collection.stats?.listed_count || 0,
-        listedCount: collection.stats?.listed_count || 0,
+        id: collection.symbol,
+        name: collection.name,
+        image: collection.image,
+        description: collection.description,
+        floorPrice: collection.floorPrice || 0,
+        volume24h: collection.volume24hr || 0,
+        totalSupply: 10000, // Magic Eden doesn't provide this, using default
+        creator: 'Unknown', // Magic Eden doesn't provide this in collections endpoint
+        priceChange24h: Math.random() * 20 - 10, // Mock data for price change
+        sales24h: Math.floor(collection.volume24hr / (collection.avgPrice24hr || 1)),
+        listedCount: collection.listedCount || 0,
       }));
       
       setCollections(transformedCollections);
@@ -78,6 +80,7 @@ export default function HomePage() {
       setLoadingUserNFTs(true);
       console.log(`🔍 Fetching NFTs for wallet: ${publicKey.toString()}`);
       
+      // Use Helius API for user NFTs (Magic Eden doesn't have this endpoint)
       const nfts = await heliusAPI.getNFTsByOwner(publicKey.toString(), 1, 100);
       console.log(`✅ Found ${nfts.length} NFTs for user`);
       
@@ -106,39 +109,28 @@ export default function HomePage() {
 
     try {
       setLoading(true);
-      console.log(`🔍 Searching for: ${searchQuery}`);
+      console.log(`🔍 Searching Magic Eden for: ${searchQuery}`);
       
-      const searchResults = await heliusAPI.searchNFTs(searchQuery);
+      // Use Magic Eden API for search
+      const searchResults = await magicEdenAPI.searchCollections(searchQuery);
       console.log(`✅ Found ${searchResults.length} search results`);
       
-      // Group search results by collection
-      const collectionMap = new Map();
-      searchResults.forEach((nft) => {
-        const collectionId = nft.grouping.find(g => g.group_key === 'collection')?.group_value || 'unknown';
-        
-        if (!collectionMap.has(collectionId)) {
-          const hash = collectionId.split('').reduce((a, b) => {
-            a = ((a << 5) - a) + b.charCodeAt(0);
-            return a & a;
-          }, 0) || 0;
-          
-          collectionMap.set(collectionId, {
-            id: collectionId,
-            name: nft.content.metadata.name.split('#')[0].trim(),
-            image: nft.content.links.image,
-            description: nft.content.metadata.description,
-            creator: nft.creators[0]?.address || 'Unknown',
-            floorPrice: Math.abs(hash % 100),
-            volume24h: Math.abs(hash % 1000),
-            totalSupply: Math.abs(hash % 10000) + 1000,
-            priceChange24h: (hash % 20) - 10,
-            sales24h: Math.abs(hash % 50),
-            listedCount: Math.abs(hash % 100),
-          });
-        }
-      });
+      // Transform search results
+      const transformedResults = searchResults.map(collection => ({
+        id: collection.symbol,
+        name: collection.name,
+        image: collection.image,
+        description: collection.description,
+        creator: 'Unknown',
+        floorPrice: collection.floorPrice || 0,
+        volume24h: collection.volume24hr || 0,
+        totalSupply: 10000,
+        priceChange24h: Math.random() * 20 - 10,
+        sales24h: Math.floor(collection.volume24hr / (collection.avgPrice24hr || 1)),
+        listedCount: collection.listedCount || 0,
+      }));
       
-      setCollections(Array.from(collectionMap.values()));
+      setCollections(transformedResults);
     } catch (error) {
       console.error("❌ Error searching NFTs:", error);
     } finally {
@@ -185,13 +177,13 @@ export default function HomePage() {
                   Solana NFT Marketplace
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Discover, collect, and trade the best NFTs on Solana with live data
+                  Discover, collect, and trade the best NFTs on Solana with live Magic Eden data
                 </p>
               </div>
               <div className="flex items-center gap-4">
                 <Badge variant="secondary" className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  Helius API
+                  Magic Eden API
                 </Badge>
                 <WalletButton />
               </div>
@@ -344,7 +336,7 @@ export default function HomePage() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading live NFT data from Helius...</p>
+              <p className="text-muted-foreground">Loading live NFT data from Magic Eden...</p>
             </div>
           </div>
         ) : (
@@ -354,7 +346,7 @@ export default function HomePage() {
                 Trending Collections
               </h2>
               <p className="text-muted-foreground">
-                Discover the hottest NFT collections on Solana with real-time data
+                Discover the hottest NFT collections on Solana with real-time Magic Eden data
               </p>
             </div>
             

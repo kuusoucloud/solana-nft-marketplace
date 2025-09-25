@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { heliusAPI } from '@/lib/helius-api';
+import { magicEdenAPI } from '@/lib/magiceden-api';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    console.log('🔥 API Route: Fetching trending collections...');
+    console.log('🔥 API Route: Fetching trending collections from Magic Eden...');
     
-    // Use Helius API instead of Magic Eden
-    const collections = await heliusAPI.getTrendingCollections(limit);
+    // Use Magic Eden API for live data
+    const collections = await magicEdenAPI.getTrendingCollections(limit);
     
-    console.log(`✅ API Route: Returning ${collections.length} collections`);
+    console.log(`✅ API Route: Returning ${collections.length} collections from Magic Eden`);
     
     return NextResponse.json(collections, {
       headers: {
@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ API Route: Error fetching collections:', error);
+    console.error('❌ API Route: Error fetching collections from Magic Eden:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch collections' },
+      { error: 'Failed to fetch collections from Magic Eden' },
       { status: 500 }
     );
   }
