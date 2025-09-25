@@ -140,6 +140,10 @@ export class HeliusAPI {
         'Content-Type': 'application/json',
       },
     });
+
+    // Log API key status for debugging
+    console.log('🔑 Helius API Key:', this.apiKey ? 'Available' : 'Missing');
+    console.log('🌐 Helius Base URL:', this.baseURL);
   }
 
   // Get NFTs by owner - FIXED API CALL
@@ -260,12 +264,12 @@ export class HeliusAPI {
     }
   }
 
-  // Get trending collections - SIMPLIFIED WITH REAL DATA
+  // Get trending collections - ENHANCED WITH BETTER MOCK DATA
   async getTrendingCollections(limit: number = 20): Promise<HeliusCollection[]> {
     try {
       console.log('🔥 Fetching trending collections...');
       
-      // Return mock collections with real-looking data for now
+      // Enhanced mock collections with more realistic data
       const mockCollections: HeliusCollection[] = [
         {
           id: 'mad-lads',
@@ -346,7 +350,7 @@ export class HeliusAPI {
           },
         },
         {
-          id: 'solana-monkey-business',
+          id: 'SMB',
           content: {
             metadata: {
               name: 'Solana Monkey Business',
@@ -369,6 +373,58 @@ export class HeliusAPI {
             listed_count: 1456,
             holders: 9823,
             supply: 5000,
+          },
+        },
+        {
+          id: 'degods',
+          content: {
+            metadata: {
+              name: 'DeGods',
+              symbol: 'DEGODS',
+              description: 'The most exclusive NFT collection on Solana',
+            },
+            links: {
+              image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80',
+            },
+          },
+          grouping: [],
+          creators: [],
+          items: [],
+          stats: {
+            floor_price: 234.7,
+            volume_24h: 4567.2,
+            volume_7d: 28934.5,
+            volume_30d: 123456.8,
+            volume_all: 2345678.9,
+            listed_count: 234,
+            holders: 7890,
+            supply: 10000,
+          },
+        },
+        {
+          id: 'famous-fox-federation',
+          content: {
+            metadata: {
+              name: 'Famous Fox Federation',
+              symbol: 'FFF',
+              description: 'The foxiest NFT collection on Solana',
+            },
+            links: {
+              image: 'https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=400&q=80',
+            },
+          },
+          grouping: [],
+          creators: [],
+          items: [],
+          stats: {
+            floor_price: 78.9,
+            volume_24h: 1234.5,
+            volume_7d: 8765.4,
+            volume_30d: 34567.8,
+            volume_all: 456789.1,
+            listed_count: 678,
+            holders: 5432,
+            supply: 7777,
           },
         },
       ];
