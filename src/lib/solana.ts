@@ -74,64 +74,82 @@ export class EnhancedSolanaNFTService {
       console.log('Using RPC URL:', SOLANA_RPC_URL);
       console.log('API Key available:', !!process.env.NEXT_PUBLIC_HELIUS_API_KEY);
       
-      // First, test our API proxy
+      // Test our API proxy first
       try {
-        console.log('Testing API proxy...');
-        const testResponse = await fetch('/api/test');
-        const testResult = await testResponse.json();
-        console.log('API proxy test result:', testResult);
+        console.log('Testing API proxy at /api/test...');
+        const testResponse = await fetch('/api/test', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
         
-        if (testResult.success) {
-          console.log('API proxy is working, fetching collections...');
+        console.log('Test response status:', testResponse.status);
+        
+        if (testResponse.ok) {
+          const testResult = await testResponse.json();
+          console.log('API proxy test result:', testResult);
           
-          // Get collections from Magic Eden via proxy
-          const magicEdenCollections = await magicEdenAPI.getTrendingCollections(limit);
-          console.log('Magic Eden collections fetched:', magicEdenCollections.length);
-          
-          if (magicEdenCollections.length > 0) {
-            const enhancedCollections: EnhancedCollectionStats[] = [];
+          if (testResult.success) {
+            console.log('✅ API proxy is working! Fetching live collections...');
+            
+            // Get collections from Magic Eden via proxy
+            const magicEdenCollections = await magicEdenAPI.getTrendingCollections(limit);
+            console.log('Magic Eden collections fetched:', magicEdenCollections.length);
+            
+            if (magicEdenCollections.length > 0) {
+              console.log('✅ Got live Magic Eden data! Processing collections...');
+              const enhancedCollections: EnhancedCollectionStats[] = [];
 
-            for (const collection of magicEdenCollections.slice(0, 6)) {
-              try {
-                // Get detailed stats
-                const stats = await magicEdenAPI.getCollectionStats(collection.symbol);
-                
-                enhancedCollections.push({
-                  name: collection.name,
-                  symbol: collection.symbol,
-                  image: collection.image,
-                  description: collection.description || 'No description available',
-                  creator: 'Magic Eden',
-                  floorPrice: stats?.floorPrice || collection.floorPrice || 0,
-                  volume24h: stats?.volume24hr || collection.volume24hr || 0,
-                  volume7d: stats?.volume7d || 0,
-                  volumeAll: stats?.volumeAll || collection.volumeAll || 0,
-                  listedCount: stats?.listedCount || collection.listedCount || 0,
-                  totalSupply: stats?.totalSupply || 10000,
-                  holders: stats?.holders || 0,
-                  avgPrice24h: stats?.avgPrice24hr || collection.avgPrice24hr || 0,
-                  priceChange24h: Math.random() * 20 - 10,
-                  sales24h: Math.floor(Math.random() * 100),
-                });
-              } catch (error) {
-                console.error(`Error processing collection ${collection.symbol}:`, error);
+              for (const collection of magicEdenCollections.slice(0, 6)) {
+                try {
+                  // Get detailed stats
+                  const stats = await magicEdenAPI.getCollectionStats(collection.symbol);
+                  
+                  enhancedCollections.push({
+                    name: collection.name,
+                    symbol: collection.symbol,
+                    image: collection.image,
+                    description: collection.description || 'No description available',
+                    creator: 'Magic Eden',
+                    floorPrice: stats?.floorPrice || collection.floorPrice || 0,
+                    volume24h: stats?.volume24hr || collection.volume24hr || 0,
+                    volume7d: stats?.volume7d || 0,
+                    volumeAll: stats?.volumeAll || collection.volumeAll || 0,
+                    listedCount: stats?.listedCount || collection.listedCount || 0,
+                    totalSupply: stats?.totalSupply || 10000,
+                    holders: stats?.holders || 0,
+                    avgPrice24h: stats?.avgPrice24hr || collection.avgPrice24hr || 0,
+                    priceChange24h: Math.random() * 20 - 10,
+                    sales24h: Math.floor(Math.random() * 100),
+                  });
+                } catch (error) {
+                  console.error(`Error processing collection ${collection.symbol}:`, error);
+                }
               }
-            }
 
-            console.log('Enhanced collections processed:', enhancedCollections.length);
-            if (enhancedCollections.length > 0) {
-              return enhancedCollections;
+              console.log('✅ Enhanced collections processed:', enhancedCollections.length);
+              if (enhancedCollections.length > 0) {
+                console.log('🚀 Returning live Magic Eden collections!');
+                return enhancedCollections;
+              }
+            } else {
+              console.log('❌ No collections returned from Magic Eden API');
             }
+          } else {
+            console.log('❌ API proxy test failed:', testResult.error);
           }
         } else {
-          console.log('API proxy test failed:', testResult.error);
+          console.log('❌ Test endpoint returned status:', testResponse.status);
+          const errorText = await testResponse.text();
+          console.log('Error response:', errorText);
         }
       } catch (apiError) {
-        console.error('API proxy error:', apiError);
+        console.error('❌ API proxy error:', apiError);
       }
 
       // Fallback to local data if API fails
-      console.log('Using fallback collections');
+      console.log('⚠️ Using fallback collections');
       return this.getFallbackCollections();
     } catch (error) {
       console.error('Error fetching trending collections:', error);
