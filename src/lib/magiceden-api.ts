@@ -92,10 +92,12 @@ export class MagicEdenAPI {
   async getPopularCollections(limit: number = 20): Promise<MagicEdenCollection[]> {
     try {
       console.log('Making request to proxy API...');
+      const cacheBuster = Date.now();
       const response = await this.axiosInstance.get('/collections', {
         params: {
           offset: 0,
           limit,
+          _t: cacheBuster, // Cache buster
         },
       });
       console.log('Proxy API response status:', response.status);
