@@ -4,8 +4,8 @@ import { magicEdenAPI, MagicEdenCollection, MagicEdenNFT } from './magiceden-api
 import { heliusAPI, HeliusNFT } from './helius-api';
 import { realTimePriceService } from './realtime-prices';
 
-// Enhanced Solana RPC endpoint
-const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+// Enhanced Solana RPC endpoint - use Helius RPC URL
+const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
 export interface EnhancedNFTMetadata {
   id: string;
@@ -71,40 +71,57 @@ export class EnhancedSolanaNFTService {
   async fetchTrendingCollections(limit: number = 20): Promise<EnhancedCollectionStats[]> {
     try {
       console.log('Fetching trending collections from Magic Eden...');
+      console.log('Using RPC URL:', SOLANA_RPC_URL);
+      console.log('API Key available:', !!process.env.NEXT_PUBLIC_HELIUS_API_KEY);
       
-      // Get collections from Magic Eden
-      const magicEdenCollections = await magicEdenAPI.getTrendingCollections(limit);
+      // Always show fallback data first for immediate display
+      const fallbackCollections = this.getFallbackCollections();
       
-      const enhancedCollections: EnhancedCollectionStats[] = [];
+      try {
+        // Get collections from Magic Eden
+        const magicEdenCollections = await magicEdenAPI.getTrendingCollections(limit);
+        console.log('Magic Eden collections fetched:', magicEdenCollections.length);
+        
+        if (magicEdenCollections.length > 0) {
+          const enhancedCollections: EnhancedCollectionStats[] = [];
 
-      for (const collection of magicEdenCollections) {
-        try {
-          // Get detailed stats
-          const stats = await magicEdenAPI.getCollectionStats(collection.symbol);
-          
-          enhancedCollections.push({
-            name: collection.name,
-            symbol: collection.symbol,
-            image: collection.image,
-            description: collection.description || 'No description available',
-            creator: 'Magic Eden', // Would get from collection metadata
-            floorPrice: stats?.floorPrice || collection.floorPrice || 0,
-            volume24h: stats?.volume24hr || collection.volume24hr || 0,
-            volume7d: stats?.volume7d || 0,
-            volumeAll: stats?.volumeAll || collection.volumeAll || 0,
-            listedCount: stats?.listedCount || collection.listedCount || 0,
-            totalSupply: stats?.totalSupply || 10000, // Default supply
-            holders: stats?.holders || 0,
-            avgPrice24h: stats?.avgPrice24hr || collection.avgPrice24hr || 0,
-            priceChange24h: Math.random() * 20 - 10, // Simulated price change
-            sales24h: Math.floor(Math.random() * 100),
-          });
-        } catch (error) {
-          console.error(`Error processing collection ${collection.symbol}:`, error);
+          for (const collection of magicEdenCollections) {
+            try {
+              // Get detailed stats
+              const stats = await magicEdenAPI.getCollectionStats(collection.symbol);
+              
+              enhancedCollections.push({
+                name: collection.name,
+                symbol: collection.symbol,
+                image: collection.image,
+                description: collection.description || 'No description available',
+                creator: 'Magic Eden', // Would get from collection metadata
+                floorPrice: stats?.floorPrice || collection.floorPrice || 0,
+                volume24h: stats?.volume24hr || collection.volume24hr || 0,
+                volume7d: stats?.volume7d || 0,
+                volumeAll: stats?.volumeAll || collection.volumeAll || 0,
+                listedCount: stats?.listedCount || collection.listedCount || 0,
+                totalSupply: stats?.totalSupply || 10000, // Default supply
+                holders: stats?.holders || 0,
+                avgPrice24h: stats?.avgPrice24hr || collection.avgPrice24hr || 0,
+                priceChange24h: Math.random() * 20 - 10, // Simulated price change
+                sales24h: Math.floor(Math.random() * 100),
+              });
+            } catch (error) {
+              console.error(`Error processing collection ${collection.symbol}:`, error);
+            }
+          }
+
+          console.log('Enhanced collections processed:', enhancedCollections.length);
+          return enhancedCollections.length > 0 ? enhancedCollections : fallbackCollections;
         }
+      } catch (apiError) {
+        console.error('Magic Eden API error:', apiError);
       }
 
-      return enhancedCollections;
+      // Return fallback data if API fails
+      console.log('Using fallback collections');
+      return fallbackCollections;
     } catch (error) {
       console.error('Error fetching trending collections:', error);
       return this.getFallbackCollections();

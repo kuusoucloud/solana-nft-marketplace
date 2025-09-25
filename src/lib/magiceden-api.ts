@@ -82,15 +82,19 @@ export class MagicEdenAPI {
   // Get popular collections
   async getPopularCollections(limit: number = 20): Promise<MagicEdenCollection[]> {
     try {
+      console.log('Making request to Magic Eden API...');
       const response = await this.axiosInstance.get('/collections', {
         params: {
           offset: 0,
           limit,
         },
       });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching popular collections:', error);
+      console.log('Magic Eden API response status:', response.status);
+      console.log('Magic Eden API response data length:', response.data?.length || 0);
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Error fetching popular collections:', error.message);
+      console.error('Error details:', error.response?.data || error);
       return [];
     }
   }

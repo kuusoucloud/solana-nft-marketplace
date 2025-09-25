@@ -145,7 +145,7 @@ export class HeliusAPI {
   // Get NFTs by owner
   async getNFTsByOwner(ownerAddress: string, page: number = 1, limit: number = 1000): Promise<HeliusNFT[]> {
     try {
-      const response = await this.axiosInstance.get('/assets', {
+      const response = await this.axiosInstance.get(`/assets?api-key=${this.apiKey}`, {
         params: {
           ownerAddress,
           page,
@@ -154,9 +154,6 @@ export class HeliusAPI {
             showFungible: false,
             showNativeBalance: false,
           },
-        },
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
         },
       });
       return response.data.items || [];
@@ -169,11 +166,7 @@ export class HeliusAPI {
   // Get NFT by mint address
   async getNFTByMint(mintAddress: string): Promise<HeliusNFT | null> {
     try {
-      const response = await this.axiosInstance.get(`/assets/${mintAddress}`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-      });
+      const response = await this.axiosInstance.get(`/assets/${mintAddress}?api-key=${this.apiKey}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching NFT ${mintAddress}:`, error);
@@ -184,14 +177,11 @@ export class HeliusAPI {
   // Get NFTs by collection
   async getNFTsByCollection(collectionId: string, page: number = 1, limit: number = 1000): Promise<HeliusNFT[]> {
     try {
-      const response = await this.axiosInstance.get('/assets', {
+      const response = await this.axiosInstance.get(`/assets?api-key=${this.apiKey}`, {
         params: {
           grouping: ['collection', collectionId],
           page,
           limit,
-        },
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
         },
       });
       return response.data.items || [];
@@ -204,13 +194,9 @@ export class HeliusAPI {
   // Search NFTs
   async searchNFTs(query: string, limit: number = 100): Promise<HeliusNFT[]> {
     try {
-      const response = await this.axiosInstance.post('/assets/search', {
+      const response = await this.axiosInstance.post(`/assets/search?api-key=${this.apiKey}`, {
         nftName: query,
         limit,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
       });
       return response.data.items || [];
     } catch (error) {
@@ -222,12 +208,9 @@ export class HeliusAPI {
   // Get NFT transactions/activities
   async getNFTTransactions(mintAddress: string, limit: number = 50): Promise<any[]> {
     try {
-      const response = await this.axiosInstance.get(`/assets/${mintAddress}/transactions`, {
+      const response = await this.axiosInstance.get(`/assets/${mintAddress}/transactions?api-key=${this.apiKey}`, {
         params: {
           limit,
-        },
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
         },
       });
       return response.data || [];
