@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { heliusAPI } from '@/lib/helius-api';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const offset = searchParams.get('offset') || '0';
-    const limit = searchParams.get('limit') || '20';
+    const limit = parseInt(searchParams.get('limit') || '20');
 
-    const response = await fetch(
-      `https://api-mainnet.magiceden.dev/v2/collections?offset=${offset}&limit=${limit}`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; NFT-Marketplace/1.0)',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Magic Eden API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    console.log('🔥 API Route: Fetching trending collections...');
     
-    return NextResponse.json(data, {
+    // Use Helius API instead of Magic Eden
+    const collections = await heliusAPI.getTrendingCollections(limit);
+    
+    console.log(`✅ API Route: Returning ${collections.length} collections`);
+    
+    return NextResponse.json(collections, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -30,7 +21,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching collections:', error);
+    console.error('❌ API Route: Error fetching collections:', error);
     return NextResponse.json(
       { error: 'Failed to fetch collections' },
       { status: 500 }
