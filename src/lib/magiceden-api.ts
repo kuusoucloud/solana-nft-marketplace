@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Magic Eden API endpoints
-const MAGIC_EDEN_BASE_URL = 'https://api-mainnet.magiceden.dev/v2';
+// Magic Eden API for NFT marketplace data
+const MAGIC_EDEN_BASE_URL = '/api'; // Use our proxy API routes
 
 export interface MagicEdenCollection {
   symbol: string;
@@ -63,6 +63,15 @@ export interface MagicEdenActivity {
   price: number;
 }
 
+export interface MagicEdenCollectionStats {
+  floorPrice: number;
+  volume24hr: number;
+  volumeAll: number;
+  listedCount: number;
+  avgPrice24hr: number;
+  createdAt: string;
+}
+
 export class MagicEdenAPI {
   private baseURL: string;
   private axiosInstance;
@@ -71,7 +80,7 @@ export class MagicEdenAPI {
     this.baseURL = MAGIC_EDEN_BASE_URL;
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
-      timeout: 10000,
+      timeout: 15000,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -82,15 +91,15 @@ export class MagicEdenAPI {
   // Get popular collections
   async getPopularCollections(limit: number = 20): Promise<MagicEdenCollection[]> {
     try {
-      console.log('Making request to Magic Eden API...');
+      console.log('Making request to proxy API...');
       const response = await this.axiosInstance.get('/collections', {
         params: {
           offset: 0,
           limit,
         },
       });
-      console.log('Magic Eden API response status:', response.status);
-      console.log('Magic Eden API response data length:', response.data?.length || 0);
+      console.log('Proxy API response status:', response.status);
+      console.log('Proxy API response data length:', response.data?.length || 0);
       return response.data || [];
     } catch (error: any) {
       console.error('Error fetching popular collections:', error.message);
@@ -99,13 +108,18 @@ export class MagicEdenAPI {
     }
   }
 
-  // Get collection stats
-  async getCollectionStats(symbol: string): Promise<any> {
+  // Get trending collections (same as popular for now)
+  async getTrendingCollections(limit: number = 20): Promise<MagicEdenCollection[]> {
+    return this.getPopularCollections(limit);
+  }
+
+  // Get collection statistics
+  async getCollectionStats(symbol: string): Promise<MagicEdenCollectionStats | null> {
     try {
       const response = await this.axiosInstance.get(`/collections/${symbol}/stats`);
       return response.data;
-    } catch (error) {
-      console.error(`Error fetching collection stats for ${symbol}:`, error);
+    } catch (error: any) {
+      console.error(`Error fetching stats for collection ${symbol}:`, error.message);
       return null;
     }
   }
@@ -179,19 +193,6 @@ export class MagicEdenAPI {
       );
     } catch (error) {
       console.error('Error searching collections:', error);
-      return [];
-    }
-  }
-
-  // Get trending collections (sorted by 24h volume)
-  async getTrendingCollections(limit: number = 20): Promise<MagicEdenCollection[]> {
-    try {
-      const collections = await this.getPopularCollections(100);
-      return collections
-        .sort((a, b) => (b.volume24hr || 0) - (a.volume24hr || 0))
-        .slice(0, limit);
-    } catch (error) {
-      console.error('Error fetching trending collections:', error);
       return [];
     }
   }
