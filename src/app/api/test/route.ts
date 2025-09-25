@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Test our Magic Eden proxy
+    console.log('Testing internal API proxy...');
+    
+    // Test our internal proxy route instead of external API
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
+    
     const response = await fetch(
-      'https://api-mainnet.magiceden.dev/v2/collections?offset=0&limit=5',
+      `${baseUrl}/api/collections?offset=0&limit=5`,
       {
         headers: {
           'Accept': 'application/json',
@@ -13,23 +19,29 @@ export async function GET() {
       }
     );
 
+    console.log('Internal proxy response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Magic Eden API error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Internal proxy error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Internal proxy data received:', data?.length || 0, 'collections');
     
     return NextResponse.json({
       success: true,
-      message: 'API proxy is working!',
+      message: 'Internal API proxy is working!',
       collectionsCount: data?.length || 0,
-      sampleCollection: data?.[0]?.name || 'No collections found'
+      sampleCollection: data?.[0]?.name || 'No collections found',
+      baseUrl
     });
   } catch (error: any) {
+    console.error('Internal proxy test failed:', error.message);
     return NextResponse.json({
       success: false,
       error: error.message,
-      message: 'API proxy failed'
+      message: 'Internal API proxy failed'
     }, { status: 500 });
   }
 }
